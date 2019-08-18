@@ -49,13 +49,13 @@ class UberBill(object):
         except AttributeError:
             pass
 
-    def web_driver_wait(self,xpath, time=15):
+    def _web_driver_wait(self,xpath, time=15):
         try:
             return WebDriverWait(self.driver, time).until(EC.presence_of_element_located((By.XPATH, xpath)))
         except:
             return 0
 
-    def trip_collapse(self,item, index=None):
+    def _trip_collapse(self,item, index=None):
         size = item.size
         w, h = size['width'], size['height']
 
@@ -67,28 +67,28 @@ class UberBill(object):
             else:
                 item.find_element_by_xpath('.//div/div').click()
 
-    def get_date_price(self,item):
+    def _get_date_price(self,item):
         date, price = item.find_element_by_xpath('.//div[@class="an"]').text.split('\n')
         return datetime.strptime(date, '%d %B %Y, %I:%M%p'), price[1:]
 
-    def is_displayed(self,item):
+    def _is_displayed(self,item):
         return item.find_element_by_xpath('.//div[2]/div[2]/div[1]/div/div').is_displayed()
 
-    def get_next_page(self):
+    def _get_next_page(self):
         icon = self.driver.find_element_by_xpath(r'//div[@data-identity="pagination-next"]')
         if icon.get_attribute('disabled') == 'true':
             return
         else:
             self.driver.execute_script("document.querySelector('div[data-identity=\"pagination-next\"]').click();")
 
-    def get_prev_page(self):
+    def _get_prev_page(self):
         icon = self.driver.find_element_by_xpath(r'//div[@data-identity="pagination-prev"]')
         if icon.get_attribute('disabled') == 'true':
             return
         else:
             self.driver.execute_script("document.querySelector('div[data-identity=\"pagination-prev\"]').click();")
 
-    def trip_expand(self,item, index=None):
+    def _trip_expand(self,item, index=None):
         size = item.size
         w, h = size['width'], size['height']
 
@@ -100,39 +100,39 @@ class UberBill(object):
             else:
                 item.find_element_by_xpath('.//div/div').click()
 
-    def take_image(self,item, index=None):
-        self.trip_expand(item, index)
+    def _take_image(self,item, index=None):
+        self._trip_expand(item, index)
         item.location_once_scrolled_into_view
         png = item.screenshot_as_png
         im = Image.open(BytesIO(png))
-        self.trip_collapse(item, index)
+        self._trip_collapse(item, index)
         return im
 
     def load_page(self):
         self.driver.get("https://riders.uber.com/trips")
-        x = self.web_driver_wait(r'//div[@data-identity="trip-list"]')
+        x = self._web_driver_wait(r'//div[@data-identity="trip-list"]')
         trips = x.find_elements_by_xpath(r'//div[@data-identity="trip-container"]')
-        self.trip_collapse(trips[0])
+        self._trip_collapse(trips[0])
         while True:
             flag = 0
-            x = self.web_driver_wait(r'//div[@data-identity="trip-list"]', 50)
+            x = self._web_driver_wait(r'//div[@data-identity="trip-list"]', 50)
             trips = x.find_elements_by_xpath(r'//div[@data-identity="trip-container"]')
             for index, x in enumerate(trips):
                 # get dates
-                d, p = self.get_date_price(x)
+                d, p = self._get_date_price(x)
                 if p.find('Cancelled') > -1:
                     continue
                 if self.tardate > d:
                     flag = 1
                     break
                 stringgg = d.strftime('%d %B %Y, %I:%M%p')
-                image_png = self.take_image(x, index)
+                image_png = self._take_image(x, index)
                 self.bill_dict[stringgg]=image_png
 
             if flag == 1:
                 break
             else:
-                self.get_next_page()
+                self._get_next_page()
 
     def save_bills(self,options):
         bills = list(self.bill_dict)
